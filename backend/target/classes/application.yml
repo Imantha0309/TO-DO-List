@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: studyforge
+  data:
+    mongodb:
+      uri: ${MONGO_URI:mongodb://localhost:27017/studyforge}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${PORT:8080}
+
+studyforge:
+  jwt:
+    secret: ${JWT_SECRET:studyforge-local-secret-please-override-in-production-0123456789abcdef}
+    expiration-ms: ${JWT_EXPIRATION_MS:604800000}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-3.6-flash}
+    max-upload-bytes: ${GEMINI_MAX_UPLOAD_BYTES:8388608}
+    timeout-seconds: ${GEMINI_TIMEOUT_SECONDS:90}
+
+logging:
+  level:
+    com.studyforge: INFO

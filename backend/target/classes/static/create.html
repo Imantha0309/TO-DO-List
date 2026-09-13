@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Target · StudyForge</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div class="bg"></div>
+  <div id="nav-slot"></div>
+
+  <div class="wrap">
+    <h1 class="section-title" style="font-size:26px;">Create a new target</h1>
+    <p style="color:var(--muted);margin-top:-6px;">What do you want to accomplish?</p>
+
+    <!-- MODE SELECT -->
+    <div class="grid grid-2" id="modeSelect" style="margin-top:20px;">
+      <div class="card clickable reveal" onclick="chooseMode('manual')">
+        <div class="feat">
+          <span class="ico">🛠</span>
+          <div><h3>Create Manually</h3><p>You're in charge — add milestones, tasks, deadlines and members yourself. Great for plans you already have in mind.</p></div>
+        </div>
+      </div>
+      <div class="card clickable reveal" onclick="chooseMode('ai')">
+        <div class="feat">
+          <span class="ico">✨</span>
+          <div><h3>Go With AI</h3><p>Describe your goal or upload a PDF. AI analyzes it, asks only what's missing, and proposes a complete plan you can edit.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANUAL BUILDER -->
+    <div id="manualSection" style="display:none;">
+      <div class="card" style="margin-top:20px;">
+        <h2 class="section-title">Target details</h2>
+        <div class="grid grid-2">
+          <div class="form-row"><label class="label">Target title *</label>
+            <input class="input" id="mTitle" placeholder="e.g. Complete IT3070 group project" /></div>
+          <div class="form-row"><label class="label">Course / module</label>
+            <input class="input" id="mCourse" placeholder="e.g. IT3070" /></div>
+          <div class="form-row"><label class="label">Start date</label>
+            <input class="input" type="date" id="mStart" /></div>
+          <div class="form-row"><label class="label">Deadline</label>
+            <input class="input" type="date" id="mDeadline" /></div>
+          <div class="form-row" style="grid-column:1/-1;"><label class="label">Description</label>
+            <textarea class="textarea" id="mDesc" placeholder="Any details worth remembering…"></textarea></div>
+        </div>
+      </div>
+      <div id="manualMilestones"></div>
+      <div class="hr-flex" style="margin-top:6px;">
+        <button class="btn btn-ghost" onclick="addMileBlock()">+ Add milestone</button>
+        <button class="btn btn-brand" onclick="saveManual(this)">Create Target</button>
+      </div>
+    </div>
+
+    <!-- AI WIZARD -->
+    <div id="aiSection" style="display:none;">
+      <!-- STEP 1 -->
+      <div class="wizard-step" id="aiStep1">
+        <div class="card">
+          <h2 class="step-title">What are you trying to accomplish?</h2>
+          <p class="step-sub">Type your goal, paste a description, or upload a PDF. StudyForge will figure out the rest.</p>
+          <label class="label">Your goal</label>
+          <textarea class="textarea" id="aiGoal" placeholder="e.g. Complete my IT3070 group project before October 20. We're a team of 4 building a web app, need research, prototype, and a report."></textarea>
+          <div class="example-chips">
+            <span class="chip" onclick="setExample(1)">IT3070 group project</span>
+            <span class="chip" onclick="setExample(2)">Thesis chapter 3</span>
+            <span class="chip" onclick="setExample(3)">Final presentation</span>
+            <span class="chip" onclick="setExample(4)">C++ assignment</span>
+          </div>
+
+          <div class="divider"></div>
+          <label class="label">Or upload a PDF (optional)</label>
+          <div class="form-row" style="grid-template-columns:1fr auto;">
+            <input class="input" type="file" id="aiPdf" accept="application/pdf,.pdf" />
+            <span class="chip" id="pdfChip" style="display:none;"></span>
+          </div>
+          <div class="hr-flex" style="margin-top:4px;">
+            <button class="btn btn-ghost" onclick="backToModes()">Back</button>
+            <button class="btn btn-brand" id="analyzeBtn" onclick="analyze()">Analyze my goal</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 SURVEY -->
+      <div class="wizard-step" id="aiStep2" style="display:none;">
+        <div class="card">
+          <h2 class="step-title">A few quick questions</h2>
+          <p class="step-sub">Only what we still need. We already know: <span id="knownChips"></span></p>
+          <div id="questionList"></div>
+          <div class="hr-flex" style="margin-top:4px;">
+            <button class="btn btn-ghost" onclick="goStep('1')">Back</button>
+            <button class="btn btn-brand" id="planBtn" onclick="generatePlan()">Generate my plan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 PROPOSAL -->
+      <div class="wizard-step" id="aiStep3" style="display:none;">
+        <div class="card prop-card pos-rel" style="margin-top:20px;padding:24px;">
+          <span class="prop-label">✦ AI PROPOSAL — you're in control</span>
+          <div class="grid grid-2" style="margin-top:10px;">
+            <div class="form-row"><label class="label">Title</label><input class="input" id="pTitle" /></div>
+            <div class="form-row"><label class="label">Course / module</label><input class="input" id="pCourse" /></div>
+            <div class="form-row"><label class="label">Start date</label><input class="input" type="date" id="pStart" /></div>
+            <div class="form-row"><label class="label">Deadline</label><input class="input" type="date" id="pDeadline" /></div>
+          </div>
+          <div class="form-row"><label class="label">Priority</label>
+            <select class="select" id="pPriority"><option>LOW</option><option selected>MEDIUM</option><option>HIGH</option></select>
+          </div>
+          <div class="form-row"><label class="label">Description</label><textarea class="textarea" id="pDesc"></textarea></div>
+        </div>
+
+        <div class="card prop-card pos-rel" style="margin-top:18px;padding:24px;">
+          <span class="prop-label">👥 MEMBERS</span>
+          <p style="color:var(--muted);font-size:13px;margin:0 0 10px;">Names suggested by AI. Add or remove; assignments stay editable below.</p>
+          <div class="member-list" id="pMembers"></div>
+          <div class="form-row" style="grid-template-columns:1fr auto;margin-top:10px;">
+            <input class="input" id="pMemberInput" placeholder="Add a member name" />
+            <button class="btn btn-ghost btn-sm" onclick="addProposalMember()">Add</button>
+          </div>
+        </div>
+
+        <div id="pMilestones"></div>
+
+        <div class="ai-note" id="pNotes" style="display:none;"></div>
+
+        <div class="hr-flex" style="margin-top:8px;">
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" onclick="goStep('2')">Back</button>
+            <button class="btn btn-ghost" onclick="generatePlan()">↻ Regenerate</button>
+          </div>
+          <button class="btn btn-brand" id="acceptBtn" onclick="saveAiPlan()">Accept &amp; Save Plan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/common.js"></script>
+  <script src="/assets/js/create.js"></script>
+</body>
+</html>
