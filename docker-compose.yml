@@ -1,0 +1,30 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: sf-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  studyforge:
+    build: ./backend
+    container_name: studyforge-app
+    restart: unless-stopped
+    environment:
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/studyforge}
+      JWT_SECRET: ${JWT_SECRET:-studyforge-local-secret-please-override-in-production-0123456789abcdef}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-604800000}
+      PORT: "8080"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
+      GEMINI_TIMEOUT_SECONDS: ${GEMINI_TIMEOUT_SECONDS:-90}
+      GEMINI_MAX_UPLOAD_BYTES: ${GEMINI_MAX_UPLOAD_BYTES:-8388608}
+    ports:
+      - "${APP_PORT:-8081}:8080"
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:
