@@ -1,6 +1,8 @@
 if (!requireAuth()) throw new Error("no auth");
 mountNav("achievements");
 
+const $ = (id) => document.getElementById(id);
+
 const icons = {
   target: "🎯",
   trophy: "🏆",

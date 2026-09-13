@@ -135,6 +135,12 @@ function requireAuth() {
 }
 
 function setupReveal() {
+  const els = document.querySelectorAll(".reveal");
+  if (els.length === 0) return;
+  if (typeof IntersectionObserver === "undefined") {
+    els.forEach((el) => el.classList.add("in"));
+    return;
+  }
   const io = new IntersectionObserver(
     (entries) => {
       entries.forEach((e) => {
@@ -146,7 +152,10 @@ function setupReveal() {
     },
     { threshold: 0.08 }
   );
-  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+  els.forEach((el) => io.observe(el));
+  setTimeout(() => {
+    document.querySelectorAll(".reveal:not(.in)").forEach((el) => el.classList.add("in"));
+  }, 900);
 }
 
 function notifyNewly(newly) {

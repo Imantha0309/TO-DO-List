@@ -1,5 +1,6 @@
 if (!requireAuth()) throw new Error("no auth");
 mountNav("create");
+setupReveal();
 
 let mode = null;
 let analyzeResult = null;
@@ -89,7 +90,7 @@ function addMileBlock() {
     </div>
     <div class="grid grid-2">
       <div class="form-row"><label class="label">Milestone title</label><input class="input ms-title" placeholder="e.g. Research & planning" /></div>
-      <div class="form-row"><label class="label">Due date</label><input class="input" type="date" class="ms-date" /></div>
+      <div class="form-row"><label class="label">Due date</label><input class="input ms-date" type="date" /></div>
     </div>
     <div class="ms-tasks"></div>
     <button class="btn btn-ghost btn-sm" onclick="addTask(this)">+ Add task</button>`;
@@ -124,49 +125,63 @@ function addTask(btn) {
 }
 
 function saveManual(btnEl) {
+  const btn = btnEl;
+  const resetBtn = () => {
+    btn.disabled = false;
+    btn.textContent = "Create Target";
+  };
   const title = $("mTitle").value.trim();
   if (!title) return toast("A target title is required", "error");
 
-  const milestones = [];
-  $("manualMilestones").querySelectorAll(".card").forEach((card) => {
-    const mTitle = card.querySelector(".ms-title").value.trim();
-    if (!mTitle) return;
-    const ms = { title: mTitle, endDate: card.querySelector(".ms-date").value || null, notes: "", tasks: [] };
-    card.querySelectorAll(".ms-tasks .card").forEach((tc) => {
-      const tTitle = tc.querySelector(".te-title").value.trim();
-      if (!tTitle) return;
-      const subtasks = (tc.querySelector(".te-subtasks").value || "")
-        .split(",").map((s) => s.trim()).filter(Boolean)
-        .map((body) => ({ body, done: false }));
-      ms.tasks.push({
-        title: tTitle,
-        description: "",
-        dueDate: tc.querySelector(".te-due").value || null,
-        priority: tc.querySelector(".te-pri").value,
-        status: "TODO",
-        assigneeName: tc.querySelector(".te-assignee").value.trim() || null,
-        dependsOn: [],
-        subtasks,
-      });
-    });
-    milestones.push(ms);
-  });
-
-  const body = {
-    title,
-    description: $("mDesc").value.trim(),
-    courseModule: $("mCourse").value.trim() || null,
-    startDate: $("mStart").value || null,
-    deadline: $("mDeadline").value || null,
-    priority: "MEDIUM",
-    source: "MANUAL",
-    members: [],
-    milestones,
-  };
-
-  const btn = btnEl;
   btn.disabled = true;
   btn.textContent = "Creating…";
+  let body;
+  try {
+    const milestones = [];
+    $("manualMilestones").querySelectorAll(".card").forEach((card) => {
+      const mTitleEl = card.querySelector(".ms-title");
+      const msEndEl = card.querySelector(".ms-date");
+      if (!mTitleEl || !msEndEl) return;
+      const mTitle = mTitleEl.value.trim();
+      if (!mTitle) return;
+      const ms = { title: mTitle, endDate: msEndEl.value || null, notes: "", tasks: [] };
+      card.querySelectorAll(".ms-tasks .card").forEach((tc) => {
+        const tTitle = tc.querySelector(".te-title").value.trim();
+        if (!tTitle) return;
+        const subtasks = (tc.querySelector(".te-subtasks").value || "")
+          .split(",").map((s) => s.trim()).filter(Boolean)
+          .map((body) => ({ body, done: false }));
+        ms.tasks.push({
+          title: tTitle,
+          description: "",
+          dueDate: tc.querySelector(".te-due").value || null,
+          priority: tc.querySelector(".te-pri").value,
+          status: "TODO",
+          assigneeName: tc.querySelector(".te-assignee").value.trim() || null,
+          dependsOn: [],
+          subtasks,
+        });
+      });
+      milestones.push(ms);
+    });
+
+    body = {
+      title,
+      description: $("mDesc").value.trim(),
+      courseModule: $("mCourse").value.trim() || null,
+      startDate: $("mStart").value || null,
+      deadline: $("mDeadline").value || null,
+      priority: "MEDIUM",
+      source: "MANUAL",
+      members: [],
+      milestones,
+    };
+  } catch (err) {
+    toast("Couldn't read the plan — check every milestone/task field is complete", "error");
+    resetBtn();
+    return;
+  }
+
   API.createTarget(body)
     .then((res) => {
       notifyNewly(res.newlyUnlocked);
@@ -174,8 +189,7 @@ function saveManual(btnEl) {
     })
     .catch((err) => {
       toast(err.message, "error");
-      btn.disabled = false;
-      btn.textContent = "Create Target";
+      resetBtn();
     });
 }
 
@@ -370,6 +384,11 @@ function removeProposalMember(name) {
 }
 
 function saveAiPlan() {
+  const btn = $("acceptBtn");
+  const resetBtn = () => {
+    btn.disabled = false;
+    btn.textContent = "Accept & Save Plan";
+  };
   const title = $("pTitle").value.trim() || proposal.title || "Untitled Target";
   const startDate = $("pStart").value;
   const deadline = $("pDeadline").value;
@@ -377,47 +396,55 @@ function saveAiPlan() {
     return toast("Deadline cannot be before the start date", "error");
   }
 
-  const milestones = [];
-  $("pMilestones").querySelectorAll("[data-mi]").forEach((mc) => {
-    const msTitle = mc.querySelector(".pm-title").value.trim();
-    if (!msTitle) return;
-    const ms = { title: msTitle, endDate: mc.querySelector(".pm-date").value || null, notes: mc.querySelector(".pm-notes").value.trim(), tasks: [] };
-    mc.querySelectorAll(".pm-tasks [data-ti]").forEach((tr) => {
-      const tTitle = tr.querySelector(".pt-title").value.trim();
-      if (!tTitle) return;
-      const subtasks = (tr.querySelector(".pt-subtasks").value || "")
-        .split(",").map((s) => s.trim()).filter(Boolean)
-        .map((body) => ({ body, done: false }));
-      ms.tasks.push({
-        title: tTitle,
-        description: tr.querySelector(".pt-desc").value.trim(),
-        dueDate: tr.querySelector(".pt-due").value || null,
-        priority: tr.querySelector(".pt-pri").value,
-        status: "TODO",
-        assigneeName: tr.querySelector(".pt-assignee").value.trim() || null,
-        dependsOn: [],
-        subtasks,
+  let body;
+  try {
+    const milestones = [];
+    $("pMilestones").querySelectorAll("[data-mi]").forEach((mc) => {
+      const msTitleEl = mc.querySelector(".pm-title");
+      const msEndEl = mc.querySelector(".pm-date");
+      if (!msTitleEl || !msEndEl) return;
+      const msTitle = msTitleEl.value.trim();
+      if (!msTitle) return;
+      const ms = { title: msTitle, endDate: msEndEl.value || null, notes: mc.querySelector(".pm-notes").value.trim(), tasks: [] };
+      mc.querySelectorAll(".pm-tasks [data-ti]").forEach((tr) => {
+        const tTitle = tr.querySelector(".pt-title").value.trim();
+        if (!tTitle) return;
+        const subtasks = (tr.querySelector(".pt-subtasks").value || "")
+          .split(",").map((s) => s.trim()).filter(Boolean)
+          .map((body) => ({ body, done: false }));
+        ms.tasks.push({
+          title: tTitle,
+          description: tr.querySelector(".pt-desc").value.trim(),
+          dueDate: tr.querySelector(".pt-due").value || null,
+          priority: tr.querySelector(".pt-pri").value,
+          status: "TODO",
+          assigneeName: tr.querySelector(".pt-assignee").value.trim() || null,
+          dependsOn: [],
+          subtasks,
+        });
       });
+      milestones.push(ms);
     });
-    milestones.push(ms);
-  });
 
-  if (!milestones.length) return toast("Add at least one milestone", "error");
+    if (!milestones.length) return toast("Add at least one milestone", "error");
 
-  const body = {
-    title,
-    description: $("pDesc").value.trim(),
-    courseModule: $("pCourse").value.trim() || null,
-    startDate: startDate || null,
-    deadline: deadline || null,
-    priority: $("pPriority").value,
-    source: "AI",
-    aiNotes: proposal.notes || null,
-    members: proposalMembers.map((m) => ({ name: m.name, email: null, role: null })),
-    milestones,
-  };
+    body = {
+      title,
+      description: $("pDesc").value.trim(),
+      courseModule: $("pCourse").value.trim() || null,
+      startDate: startDate || null,
+      deadline: deadline || null,
+      priority: $("pPriority").value,
+      source: "AI",
+      aiNotes: proposal.notes || null,
+      members: proposalMembers.map((m) => ({ name: m.name, email: null, role: null })),
+      milestones,
+    };
+  } catch (err) {
+    toast("Couldn't read the proposal — check every milestone/task field is complete", "error");
+    return;
+  }
 
-  const btn = $("acceptBtn");
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Saving…';
   API.createTarget(body)
@@ -428,7 +455,6 @@ function saveAiPlan() {
     })
     .catch((err) => {
       toast(err.message, "error");
-      btn.disabled = false;
-      btn.textContent = "Accept & Save Plan";
+      resetBtn();
     });
 }
